@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Éditeur — Carte Conceptuelle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Literata:ital,wght@0,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:#060b09; --bg-mid:#0d1a15; --surface:#10221c; --surface-2:#152a23;
+  --line: rgba(150,220,190,0.16);
+  --accent-bio:#63e6a8; --accent-cyan:#4fd8e0;
+  --text-primary:#eaf6ef; --text-muted:#7fa08f;
+  --font-display:'Space Grotesk', sans-serif; --font-body:'Literata', serif;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; min-height:100vh;
+  background:radial-gradient(ellipse at 50% 0%, var(--bg-mid) 0%, var(--bg-deep) 60%);
+  color:var(--text-primary); font-family:var(--font-body);
+  padding:32px 18px 100px;
+}
+h1{ font-family:var(--font-display); font-weight:600; font-size:24px; margin-bottom:6px; }
+.sub{ color:var(--text-muted); font-size:14px; margin-bottom:28px; max-width:640px; }
+.wrap{ max-width:760px; margin:0 auto; }
+
+.card{
+  background:var(--surface); border:1px solid var(--line); border-radius:10px;
+  padding:16px; margin-bottom:14px;
+}
+.top-fields{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px; }
+.top-fields .full{ grid-column:1/-1; }
+label{ display:block; font-family:var(--font-display); font-size:11px; letter-spacing:.03em; color:var(--accent-cyan); margin-bottom:5px; }
+input[type=text], textarea{
+  width:100%; background:var(--surface-2); border:1px solid var(--line); border-radius:6px;
+  color:var(--text-primary); font-family:var(--font-body); font-size:14px; padding:8px 10px;
+}
+textarea{ resize:vertical; min-height:44px; }
+input[type=color]{ width:44px; height:32px; border:none; background:none; cursor:pointer; }
+
+.node-card{
+  border:1px solid var(--line); border-left:3px solid var(--accent-bio);
+  border-radius:8px; padding:12px; margin-bottom:10px; background:var(--surface-2);
+}
+.node-card .row{ display:flex; gap:10px; margin-bottom:8px; }
+.node-card .row .icon-field{ width:60px; flex:none; }
+.node-card .row .name-field{ flex:1; }
+.node-card .row .color-field{ flex:none; }
+.node-card .children{ margin-left:20px; margin-top:10px; border-left:1px dashed var(--line); padding-left:14px; }
+.btnrow{ display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+button{
+  font-family:var(--font-display); font-size:12.5px; border-radius:16px; padding:6px 13px;
+  cursor:pointer; border:1px solid var(--line); background:transparent; color:var(--text-primary);
+}
+button:hover{ border-color:var(--accent-bio); color:var(--accent-bio); }
+button.primary{ background:var(--accent-bio); color:var(--bg-deep); border:none; font-weight:600; }
+button.primary:hover{ opacity:.88; color:var(--bg-deep); }
+button.danger:hover{ border-color:#e08fd0; color:#e08fd0; }
+
+.section-title{ font-family:var(--font-display); font-size:15px; margin:22px 0 10px; color:var(--text-primary); }
+.actions{
+  position:sticky; bottom:0; background:linear-gradient(to top, var(--bg-deep) 60%, transparent);
+  padding:18px 0 6px; display:flex; gap:10px; flex-wrap:wrap;
+}
+#output{
+  width:100%; height:280px; background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
+  color:var(--accent-bio); font-family:monospace; font-size:12.5px; padding:12px; margin-top:12px; display:none;
+}
+.note{ font-size:12.5px; color:var(--text-muted); margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Éditeur de carte conceptuelle</h1>
+  <p class="sub">Remplis le formulaire, clique sur « Générer config.js », télécharge le fichier et remplace celui de ton dossier. Pas besoin de toucher au code.</p>
+
+  <div class="card top-fields">
+    <div class="full">
+      <label>Pseudo (centre de la carte)</label>
+      <input type="text" id="pseudo" value="TON_PSEUDO">
+    </div>
+    <div class="full">
+      <label>Bio courte</label>
+      <textarea id="bio">Ta courte bio arrive ici.</textarea>
+    </div>
+  </div>
+
+  <div class="section-title">Pétales et sous-branches</div>
+  <div id="tree"></div>
+  <button id="addRoot">+ Ajouter un pétale</button>
+
+  <div class="actions">
+    <button class="primary" id="generateBtn">Générer config.js</button>
+    <button id="downloadBtn" style="display:none;">Télécharger config.js</button>
+  </div>
+  <textarea id="output" readonly></textarea>
+  <p class="note">Astuce : chaque bouton « + sous-branche » ajoute un niveau supplémentaire — imbrique autant que tu veux.</p>
+</div>
+
+<template id="nodeTemplate">
+  <div class="node-card">
+    <div class="row">
+      <div class="icon-field"><label>Icône</label><input type="text" class="f-icone" maxlength="4"></div>
+      <div class="name-field"><label>Nom</label><input type="text" class="f-nom"></div>
+      <div class="color-field"><label>Couleur</label><input type="color" class="f-couleur" value="#63e6a8"></div>
+    </div>
+    <label>Description</label>
+    <textarea class="f-desc"></textarea>
+    <label style="margin-top:8px;">Lien (optionnel)</label>
+    <input type="text" class="f-lien" placeholder="https://">
+    <div class="btnrow">
+      <button class="add-child">+ Sous-branche</button>
+      <button class="add-sibling">+ Élément après</button>
+      <button class="danger remove-node">Supprimer</button>
+    </div>
+    <div class="children"></div>
+  </div>
+</template>
+
+<script>
+const tpl = document.getElementById('nodeTemplate');
+const treeEl = document.getElementById('tree');
+
+function createNode(container, defaults){
+  const node = tpl.content.firstElementChild.cloneNode(true);
+  if(defaults){
+    node.querySelector('.f-icone').value = defaults.icone||'';
+    node.querySelector('.f-nom').value = defaults.nom||'';
+    node.querySelector('.f-couleur').value = defaults.couleur||'#63e6a8';
+    node.querySelector('.f-desc').value = defaults.description||'';
+    node.querySelector('.f-lien').value = defaults.lien||'';
+  }
+  const childrenBox = node.querySelector('.children');
+  node.querySelector('.add-child').addEventListener('click', ()=> createNode(childrenBox));
+  node.querySelector('.add-sibling').addEventListener('click', ()=> createNode(container));
+  node.querySelector('.remove-node').addEventListener('click', ()=> node.remove());
+  container.appendChild(node);
+  return node;
+}
+
+document.getElementById('addRoot').addEventListener('click', ()=> createNode(treeEl));
+
+// pré-remplissage avec un exemple pour montrer le fonctionnement
+const example = createNode(treeEl, {
+  icone:'🌱', nom:'Ma première discipline', couleur:'#63e6a8',
+  description:'Décris ici ta pratique ou ton lien avec cette discipline.'
+});
+createNode(example.querySelector('.children'), {
+  icone:'🔎', nom:'Un détail ou sous-projet', couleur:'',
+  description:'Exemple de sous-branche — clique sur + Sous-branche pour aller encore plus loin.'
+});
+
+function serializeNode(node, indent){
+  const pad = '  '.repeat(indent);
+  const nom = node.querySelector('.f-nom').value.trim() || 'Sans titre';
+  const icone = node.querySelector('.f-icone').value.trim();
+  const couleur = node.querySelector('.f-couleur').value;
+  const desc = node.querySelector('.f-desc').value.trim();
+  const lien = node.querySelector('.f-lien').value.trim();
+  const childrenBox = node.querySelector('.children');
+  const childNodes = Array.from(childrenBox.children).filter(c=>c.classList.contains('node-card'));
+
+  let out = pad + '{\n';
+  out += pad + '  nom: ' + JSON.stringify(nom) + ',\n';
+  if(icone) out += pad + '  icone: ' + JSON.stringify(icone) + ',\n';
+  out += pad + '  couleur: ' + JSON.stringify(couleur) + ',\n';
+  if(desc) out += pad + '  description: ' + JSON.stringify(desc) + ',\n';
+  if(lien) out += pad + '  lien: ' + JSON.stringify(lien) + ',\n';
+  if(childNodes.length){
+    out += pad + '  enfants: [\n';
+    out += childNodes.map(c=>serializeNode(c, indent+2)).join(',\n') + '\n';
+    out += pad + '  ]\n';
+  }
+  out += pad + '}';
+  return out;
+}
+
+function generate(){
+  const pseudo = document.getElementById('pseudo').value.trim() || 'TON_PSEUDO';
+  const bio = document.getElementById('bio').value.trim();
+  const rootNodes = Array.from(treeEl.children).filter(c=>c.classList.contains('node-card'));
+  let code = 'window.CONFIG = {\n';
+  code += '  pseudo: ' + JSON.stringify(pseudo) + ',\n';
+  code += '  bio: ' + JSON.stringify(bio) + ',\n';
+  code += '  branches: [\n';
+  code += rootNodes.map(n=>serializeNode(n, 2)).join(',\n') + '\n';
+  code += '  ]\n};\n';
+  const output = document.getElementById('output');
+  output.value = code;
+  output.style.display = 'block';
+  document.getElementById('downloadBtn').style.display = 'inline-block';
+  return code;
+}
+
+document.getElementById('generateBtn').addEventListener('click', generate);
+document.getElementById('downloadBtn').addEventListener('click', ()=>{
+  const code = generate();
+  const blob = new Blob([code], {type:'text/javascript'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'config.js';
+  a.click();
+});
+</script>
+</body>
+</html>

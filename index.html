@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carte Conceptuelle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Literata:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:#060b09;
+  --bg-mid:#0d1a15;
+  --surface:#10221c;
+  --surface-line: rgba(150,220,190,0.14);
+  --accent-bio:#63e6a8;
+  --accent-cyan:#4fd8e0;
+  --text-primary:#eaf6ef;
+  --text-muted:#7fa08f;
+  --font-display:'Space Grotesk', sans-serif;
+  --font-body:'Literata', serif;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{
+  height:100%;
+  background:radial-gradient(ellipse at 50% 30%, var(--bg-mid) 0%, var(--bg-deep) 65%);
+  color:var(--text-primary);
+  font-family:var(--font-body);
+  overflow-x:hidden;
+}
+body{
+  min-height:100vh;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  position:relative;
+}
+.ambient{ position:fixed; inset:0; pointer-events:none; z-index:0; }
+.ambient span{
+  position:absolute; width:3px; height:3px; border-radius:50%;
+  background:var(--accent-bio); opacity:0.35; filter:blur(0.5px);
+  animation:float 14s ease-in-out infinite;
+}
+@keyframes float{ 0%,100%{transform:translateY(0);opacity:0.15;} 50%{transform:translateY(-28px);opacity:0.5;} }
+
+.intro{
+  position:relative; z-index:2; text-align:center; max-width:600px; padding:44px 24px 8px;
+}
+.intro .eyebrow{
+  font-family:var(--font-display); font-size:12px; letter-spacing:0.04em; color:var(--accent-cyan); margin-bottom:8px;
+}
+.intro p{ font-size:15px; line-height:1.6; color:var(--text-muted); font-style:italic; }
+
+.hint{
+  position:relative; z-index:2; font-family:var(--font-display); font-size:12px;
+  color:var(--text-muted); margin:6px 0 4px; text-align:center;
+}
+
+.flower-wrap{
+  position:relative; z-index:2;
+  width:min(92vw, 760px);
+  aspect-ratio:1/1;
+  margin:8px 0 28px;
+}
+svg.tree{ width:100%; height:100%; overflow:visible; }
+
+.node{ cursor:pointer; }
+.node .shape{ transition:filter .3s ease, transform .3s ease; transform-origin:center; }
+.node:hover .shape, .node.active .shape{ filter:brightness(1.3) drop-shadow(0 0 10px currentColor); }
+.node.has-children .shape{ stroke:rgba(255,255,255,0.35); stroke-width:1.5; }
+.node.leaf .shape{ opacity:0.92; }
+
+.node-label{
+  font-family:var(--font-display);
+  fill:var(--text-primary);
+  text-anchor:middle;
+  pointer-events:none;
+}
+.link{
+  fill:none;
+  stroke:rgba(140,200,175,0.35);
+  stroke-width:1.6;
+}
+
+.core-glow{ animation:pulse 4.5s ease-in-out infinite; }
+@keyframes pulse{ 0%,100%{opacity:0.5; r:56;} 50%{opacity:0.8; r:64;} }
+.core-label{
+  font-family:var(--font-display); font-weight:600; font-size:15px;
+  fill:var(--bg-deep); text-anchor:middle; pointer-events:none;
+}
+
+.node-enter{ animation:nodeIn .5s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes nodeIn{ from{opacity:0; transform:scale(0.5);} to{opacity:1; transform:scale(1);} }
+
+.panel{
+  position:fixed; z-index:10; right:0; top:0; bottom:0; width:min(420px, 100vw);
+  background:var(--surface); border-left:1px solid var(--surface-line);
+  padding:40px 32px; transform:translateX(100%);
+  transition:transform .45s cubic-bezier(.2,.8,.2,1);
+  display:flex; flex-direction:column; overflow-y:auto;
+}
+.panel.open{ transform:translateX(0); }
+.panel-close{
+  align-self:flex-end; background:none; border:none; color:var(--text-muted);
+  font-family:var(--font-display); font-size:14px; cursor:pointer; padding:8px; margin-bottom:12px;
+}
+.panel-close:hover{ color:var(--accent-bio); }
+.panel-crumb{ font-family:var(--font-display); font-size:12px; color:var(--accent-cyan); margin-bottom:10px; }
+.panel-icon{ font-size:32px; margin-bottom:14px; }
+.panel h2{ font-family:var(--font-display); font-size:24px; margin-bottom:14px; }
+.panel p{ font-size:15px; line-height:1.7; color:var(--text-muted); margin-bottom:12px; }
+.panel a{ color:var(--accent-cyan); text-decoration:none; border-bottom:1px solid currentColor; font-size:14px; }
+.panel-toggle{
+  margin-top:10px; align-self:flex-start;
+  background:rgba(99,230,168,0.12); border:1px solid var(--surface-line); color:var(--accent-bio);
+  font-family:var(--font-display); font-size:13px; padding:9px 16px; border-radius:20px; cursor:pointer;
+}
+.panel-toggle:hover{ background:rgba(99,230,168,0.22); }
+
+.overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:9; opacity:0; pointer-events:none; transition:opacity .4s; }
+.overlay.open{ opacity:1; pointer-events:auto; }
+
+footer{
+  position:relative; z-index:2; font-family:var(--font-display); font-size:12px; color:var(--text-muted);
+  padding-bottom:28px; text-align:center;
+}
+@media (prefers-reduced-motion: reduce){
+  .node-enter, .core-glow, .ambient span{ animation:none !important; opacity:1 !important; }
+}
+@media (max-width:560px){ .panel{ width:100%; } }
+</style>
+</head>
+<body>
+
+<div class="ambient" id="ambient"></div>
+
+<div class="intro">
+  <div class="eyebrow">CARTE CONCEPTUELLE</div>
+  <p id="bioText">Ta bio arrive ici.</p>
+</div>
+<div class="hint">clique sur un pétale ou une branche pour l'ouvrir</div>
+
+<div class="flower-wrap">
+  <svg class="tree" id="treeSvg" viewBox="-400 -400 800 800"></svg>
+</div>
+
+<footer id="footerNote">carte inspirée de la fleur de la permaculture — clique, explore, referme</footer>
+
+<div class="overlay" id="overlay"></div>
+<aside class="panel" id="panel">
+  <button class="panel-close" id="panelClose">FERMER ✕</button>
+  <div class="panel-crumb" id="panelCrumb"></div>
+  <div class="panel-icon" id="panelIcon">🌱</div>
+  <h2 id="panelTitle">Titre</h2>
+  <p id="panelDesc">Description.</p>
+  <a id="panelLink" href="#" target="_blank" style="display:none;">En savoir plus →</a>
+  <button class="panel-toggle" id="panelToggle" style="display:none;"></button>
+</aside>
+
+<!-- Les données sont dans config.js, chargé avant ce script -->
+<script src="config.js"></script>
+<script>
+/* ============================================================
+   MOTEUR — profondeur illimitée (testé jusqu'à 10+ niveaux)
+   Tu n'as normalement rien à modifier ici : tout se passe dans config.js
+   ============================================================ */
+
+const CFG = window.CONFIG || { pseudo:"TON_PSEUDO", bio:"", branches:[] };
+document.title = CFG.pseudo + " — Carte Conceptuelle";
+document.getElementById('bioText').textContent = CFG.bio || '';
+
+// particules ambiantes
+const ambient = document.getElementById('ambient');
+for(let i=0;i<20;i++){
+  const s = document.createElement('span');
+  s.style.left = Math.random()*100+'%';
+  s.style.top = Math.random()*100+'%';
+  s.style.animationDelay = (Math.random()*10)+'s';
+  s.style.animationDuration = (10+Math.random()*10)+'s';
+  ambient.appendChild(s);
+}
+
+// ---- construction de l'arbre ----
+const root = {
+  nom: CFG.pseudo, icone:'', couleur:'#eaffef', description: CFG.bio || '',
+  enfants: CFG.branches || [], isRoot:true, __expanded:true
+};
+(function assignIds(node, id, depth){
+  node.__id = id; node.__depth = depth;
+  if(!node.isRoot && node.__expanded === undefined) node.__expanded = false;
+  (node.enfants||[]).forEach((c,i)=>assignIds(c, id+'-'+i, depth+1));
+})(root, 'n', 0);
+
+const RING = [0, 190, 300, 390, 465, 530, 588, 640, 688, 732, 772, 810, 845];
+function radiusAt(depth){
+  if(depth < RING.length) return RING[depth];
+  return RING[RING.length-1] + (depth-(RING.length-1))*32;
+}
+function nodeR(depth){ return Math.max(13, 30 - depth*3); }
+function fontSize(depth){ return Math.max(9, 15 - depth*1.1); }
+
+function computeWeight(node){
+  if(node.__expanded && node.enfants && node.enfants.length){
+    node.__weight = node.enfants.reduce((s,c)=> s+computeWeight(c), 0);
+  } else { node.__weight = 1; }
+  return node.__weight;
+}
+function resolveColor(node, parentColor){
+  node.__color = node.couleur || parentColor || '#63e6a8';
+  (node.enfants||[]).forEach(c=>resolveColor(c, node.__color));
+}
+function layout(node, aStart, aEnd, depth){
+  const angle = (aStart+aEnd)/2;
+  const r = radiusAt(depth);
+  node.__angle = angle; node.__r = r;
+  node.__x = r*Math.cos(angle*Math.PI/180);
+  node.__y = r*Math.sin(angle*Math.PI/180);
+  if(node.__expanded && node.enfants && node.enfants.length){
+    let a = aStart;
+    const total = node.__weight || 1;
+    node.enfants.forEach(child=>{
+      const span = (child.__weight/total) * (aEnd-aStart);
+      layout(child, a, a+span, depth+1);
+      a += span;
+    });
+  }
+}
+function collectVisible(node, list, parent){
+  list.push({node, parent});
+  if(node.__expanded && node.enfants){
+    node.enfants.forEach(c=>collectVisible(c, list, node));
+  }
+  return list;
+}
+
+const svg = document.getElementById('treeSvg');
+const ns = "http://www.w3.org/2000/svg";
+function el(tag, attrs){
+  const e = document.createElementNS(ns, tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function wrapLabel(text, maxChars){
+  const words = text.split(' ');
+  const lines = []; let cur = '';
+  words.forEach(w=>{
+    if((cur+' '+w).trim().length > maxChars && cur){ lines.push(cur.trim()); cur = w; }
+    else cur = (cur+' '+w).trim();
+  });
+  if(cur) lines.push(cur);
+  return lines.slice(0,3);
+}
+
+let curVB = [-400,-400,800,800];
+let vbAnim = null;
+
+function render(){
+  resolveColor(root, root.__color);
+  computeWeight(root);
+  layout(root, -90, 270, 0);
+
+  const visible = collectVisible(root, [], null);
+
+  // vider le svg (sauf defs)
+  svg.innerHTML = '';
+  const defs = el('defs', {});
+  defs.innerHTML = `<radialGradient id="coreGrad" cx="50%" cy="45%" r="60%">
+    <stop offset="0%" stop-color="#eaffef"/><stop offset="100%" stop-color="#63e6a8"/></radialGradient>`;
+  svg.appendChild(defs);
+
+  // halo du centre
+  svg.appendChild(el('circle', {class:'core-glow', cx:0, cy:0, r:56, fill:'var(--accent-bio)', 'fill-opacity':'0.18'}));
+
+  // liens
+  visible.forEach(({node, parent})=>{
+    if(!parent) return;
+    const cpAngle = parent.__angle;
+    const cpx = node.__r * Math.cos(cpAngle*Math.PI/180);
+    const cpy = node.__r * Math.sin(cpAngle*Math.PI/180);
+    const d = `M ${parent.__x},${parent.__y} Q ${cpx},${cpy} ${node.__x},${node.__y}`;
+    svg.appendChild(el('path', {class:'link', d}));
+  });
+
+  // noeuds
+  visible.forEach(({node})=>{
+    if(node.isRoot){
+      svg.appendChild(el('circle', {class:'core-circle', cx:0, cy:0, r:52, fill:'url(#coreGrad)'}));
+      const t = el('text', {class:'core-label', x:0, y:5});
+      t.textContent = node.nom;
+      svg.appendChild(t);
+      return;
+    }
+    const depth = node.__depth;
+    const g = el('g', {
+      class:'node node-enter ' + ((node.enfants&&node.enfants.length)?'has-children':'leaf'),
+      transform:`translate(${node.__x},${node.__y})`,
+      style:`color:${node.__color}; animation-delay:${Math.min(depth*0.05,0.4)}s`
+    });
+
+    if(depth === 1){
+      // pétale : forme allongée pointant vers l'extérieur
+      const L = node.__r - 45, W = Math.max(38, 90 - (root.enfants.length>7?8:0));
+      const localAngle = node.__angle + 90;
+      const inner = el('g', {transform:`rotate(${localAngle})`});
+      const tipY = -L;
+      const path = `M0,0 C ${-W/2},${-L*0.35} ${-W/2},${-L*0.78} 0,${tipY}
+                    C ${W/2},${-L*0.78} ${W/2},${-L*0.35} 0,0 Z`;
+      inner.appendChild(el('path', {class:'shape', d:path, fill:node.__color, 'fill-opacity':'0.85'}));
+      g.appendChild(inner);
+    } else {
+      g.appendChild(el('circle', {class:'shape', r:nodeR(depth), fill:node.__color, 'fill-opacity':Math.max(0.55,1-depth*0.06)}));
+    }
+
+    const fs = fontSize(depth);
+    const labelDist = depth===1 ? (node.__r - 45) + 16 : nodeR(depth) + fs*1.5;
+    const label = el('text', {class:'node-label', 'font-size':fs, x:0, y: depth===1 ? -(node.__r-45)-10 : labelDist});
+    const lines = wrapLabel((node.icone?node.icone+' ':'')+node.nom, depth<=1?16:12);
+    lines.forEach((ln,i)=>{
+      const tspan = el('tspan', {x:0, dy: i===0?0:fs+2});
+      tspan.textContent = ln;
+      label.appendChild(tspan);
+    });
+    g.appendChild(label);
+
+    g.addEventListener('click', ()=> onNodeClick(node));
+    svg.appendChild(g);
+  });
+
+  fitViewBox(visible);
+}
+
+function fitViewBox(visible){
+  let minX=0,maxX=0,minY=0,maxY=0;
+  visible.forEach(({node})=>{
+    const pad = node.__depth===0?60: (node.__depth===1? 70 : nodeR(node.__depth)+55);
+    const x = node.__x, y = node.__y;
+    minX = Math.min(minX, x-pad); maxX = Math.max(maxX, x+pad);
+    minY = Math.min(minY, y-pad); maxY = Math.max(maxY, y+pad);
+  });
+  const w = Math.max(500, maxX-minX), h = Math.max(500, maxY-minY);
+  const size = Math.max(w,h);
+  const cx = (minX+maxX)/2, cy = (minY+maxY)/2;
+  animateViewBox([cx-size/2, cy-size/2, size, size]);
+}
+function animateViewBox(target){
+  const start = curVB.slice();
+  const t0 = performance.now();
+  if(vbAnim) cancelAnimationFrame(vbAnim);
+  function step(t){
+    const p = Math.min(1, (t-t0)/550);
+    const e = 1 - Math.pow(1-p, 3);
+    const vb = start.map((s,i)=> s + (target[i]-s)*e);
+    svg.setAttribute('viewBox', vb.join(' '));
+    if(p<1){ vbAnim = requestAnimationFrame(step); } else { curVB = target; }
+  }
+  vbAnim = requestAnimationFrame(step);
+}
+
+// ---- panneau de détail ----
+const panel = document.getElementById('panel');
+const overlay = document.getElementById('overlay');
+function findPath(node, target, path){
+  path = path.concat([node.nom]);
+  if(node === target) return path;
+  for(const c of (node.enfants||[])){
+    const r = findPath(c, target, path);
+    if(r) return r;
+  }
+  return null;
+}
+function onNodeClick(node){
+  const hasChildren = node.enfants && node.enfants.length;
+  if(hasChildren){ node.__expanded = !node.__expanded; render(); }
+  openPanel(node);
+}
+function openPanel(node){
+  const path = findPath(root, node, []) || [node.nom];
+  document.getElementById('panelCrumb').textContent = path.slice(0,-1).join(' / ');
+  document.getElementById('panelIcon').textContent = node.icone || '🌱';
+  document.getElementById('panelTitle').textContent = node.nom;
+  document.getElementById('panelDesc').textContent = node.description || '';
+  const link = document.getElementById('panelLink');
+  if(node.lien){ link.href = node.lien; link.style.display='inline-block'; } else { link.style.display='none'; }
+  const toggle = document.getElementById('panelToggle');
+  if(node.enfants && node.enfants.length){
+    toggle.style.display='inline-block';
+    toggle.textContent = node.__expanded ? 'Refermer les sous-branches' : 'Ouvrir les sous-branches ('+node.enfants.length+')';
+    toggle.onclick = ()=>{ node.__expanded = !node.__expanded; render(); openPanel(node); };
+  } else { toggle.style.display='none'; }
+  panel.classList.add('open'); overlay.classList.add('open');
+}
+function closePanel(){ panel.classList.remove('open'); overlay.classList.remove('open'); }
+document.getElementById('panelClose').addEventListener('click', closePanel);
+overlay.addEventListener('click', closePanel);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closePanel(); });
+
+render();
+</script>
+</body>
+</html>
